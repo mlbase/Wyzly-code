@@ -1,8 +1,8 @@
 import { NextApiResponse } from 'next';
-import { AuthenticatedRequest, ApiHandler } from './auth';
+import { AuthenticatedRequestWithUser, ApiHandler } from './auth';
 
 export const withErrorHandler = (handler: ApiHandler) => {
-  return async (req: AuthenticatedRequest, res: NextApiResponse) => {
+  return async (req: AuthenticatedRequestWithUser, res: NextApiResponse) => {
     try {
       await handler(req, res);
     } catch (error) {

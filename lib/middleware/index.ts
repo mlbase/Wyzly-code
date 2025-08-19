@@ -7,4 +7,4 @@ export * from './errorHandler';
 export * from './methods';
 
 // Export types
-export type { AuthenticatedRequest, ApiHandler } from './auth';
+export type { AuthenticatedRequest, AuthenticatedRequestWithUser, ApiHandler } from './auth';

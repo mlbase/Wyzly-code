@@ -1,9 +1,9 @@
 import { NextApiResponse } from 'next';
-import { AuthenticatedRequest, ApiHandler } from './auth';
+import { AuthenticatedRequestWithUser, ApiHandler } from './auth';
 
 export const withMethods = (allowedMethods: string[]) => {
   return (handler: ApiHandler) => {
-    return async (req: AuthenticatedRequest, res: NextApiResponse) => {
+    return async (req: AuthenticatedRequestWithUser, res: NextApiResponse) => {
       if (!req.method || !allowedMethods.includes(req.method)) {
         res.setHeader('Allow', allowedMethods.join(', '));
         return res.status(405).json({
