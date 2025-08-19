@@ -349,6 +349,49 @@ Update box (Restaurant owner only). quantity can`t changed by this api use inven
 }
 ```
 
+### POST /api/boxes/by-ids
+Get multiple boxes by IDs (Public access).
+
+**Request Body:**
+```json
+{
+  "boxIds": [1, 5, 8, 12]
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "boxes": [
+      {
+        "id": 1,
+        "title": "Classic Spaghetti Carbonara Box",
+        "price": 15.99,
+        "quantity": 25,
+        "image": "/images/carbonara-box.jpg",
+        "isAvailable": true,
+        "restaurant": {
+          "id": 1,
+          "name": "Pasta Palace",
+          "description": "Authentic Italian cuisine...",
+          "phoneNumber": "+1-555-1001"
+        }
+      }
+    ],
+    "requestedCount": 4,
+    "foundCount": 1
+  }
+}
+```
+
+**Features:**
+- **No authentication required** - supports offline wishlist functionality
+- **Bulk fetch** - retrieve multiple boxes in single request
+- **Rate limited** - maximum 100 box IDs per request
+- **Missing box handling** - returns found boxes and reports counts
+
 ### DELETE /api/boxes/:id
 Delete box (Restaurant owner only).
 
@@ -442,6 +485,91 @@ Create new order (Customer only).
   }
 }
 ```
+
+### POST /api/orders/bulk
+Create bulk order with multiple items (Customer only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "items": [
+    { "boxId": 1, "quantity": 2 },
+    { "boxId": 5, "quantity": 1 },
+    { "boxId": 3, "quantity": 3 }
+  ],
+  "paymentMethod": "credit_card"
+}
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "message": "Bulk order created successfully",
+  "data": {
+    "orders": [
+      {
+        "id": 10,
+        "userId": 6,
+        "boxId": 1,
+        "quantity": 2,
+        "totalPrice": 31.98,
+        "status": "confirmed",
+        "boxTitle": "Classic Spaghetti Carbonara Box",
+        "restaurantName": "Pasta Palace",
+        "createdAt": "2025-08-18T11:00:00Z"
+      }
+    ],
+    "payments": [
+      {
+        "id": 8,
+        "orderId": 10,
+        "amount": 31.98,
+        "status": "completed",
+        "method": "credit_card",
+        "transactionId": "txn_1692358800000_10",
+        "createdAt": "2025-08-18T11:00:00Z"
+      }
+    ],
+    "restaurantGroups": [
+      {
+        "restaurantId": 1,
+        "restaurantName": "Pasta Palace",
+        "items": [
+          {
+            "boxId": 1,
+            "boxTitle": "Classic Spaghetti Carbonara Box",
+            "quantity": 2,
+            "unitPrice": 15.99,
+            "totalPrice": 31.98
+          }
+        ],
+        "totalAmount": 31.98
+      }
+    ],
+    "summary": {
+      "totalOrders": 3,
+      "totalAmount": 67.50,
+      "restaurants": 2,
+      "paymentMethod": "credit_card"
+    }
+  }
+}
+```
+
+**Features:**
+- **Transaction Safety**: All operations are atomic - if any step fails, everything rolls back
+- **Multi-Restaurant Support**: Automatically groups orders by restaurant
+- **Individual Payments**: Creates separate payments for each order item (enables individual cancellation)
+- **Stock Management**: Validates availability and decreases quantities automatically
+- **Inventory Tracking**: Records all quantity changes for audit trail
+
+**Error Responses:**
+- **400**: Invalid items array, insufficient stock, or boxes not found
+- **401**: Authentication required
+- **500**: Transaction failed or internal server error
 
 ### PUT /api/orders/:id/status
 Update order status (Admin only).
@@ -641,6 +769,168 @@ Approve cancellation request (Admin only).
   }
 }
 ```
+
+---
+
+## Wishlist Management
+
+### GET /api/wishlist/populated
+Get user's wishlist with populated box data (Customer only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "wishlist": {
+      "userId": 6,
+      "items": [
+        {
+          "boxId": 1,
+          "addedAt": "2025-08-18T10:00:00Z",
+          "priority": "medium",
+          "notes": "Extra spicy please",
+          "quantity": 2,
+          "box": {
+            "id": 1,
+            "title": "Classic Spaghetti Carbonara Box",
+            "price": 15.99,
+            "quantity": 25,
+            "image": "/images/carbonara-box.jpg",
+            "isAvailable": true,
+            "restaurant": {
+              "id": 1,
+              "name": "Pasta Palace"
+            }
+          }
+        }
+      ],
+      "itemCount": 1,
+      "availableCount": 1,
+      "unavailableCount": 0,
+      "groupedItems": {
+        "available": [...],
+        "unavailable": []
+      },
+      "createdAt": "2025-08-18T09:00:00Z",
+      "updatedAt": "2025-08-18T10:00:00Z"
+    }
+  }
+}
+```
+
+### POST /api/wishlist
+Add item to wishlist (Customer only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "boxId": 1,
+  "priority": "medium",
+  "notes": "Extra spicy please",
+  "quantity": 2
+}
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "message": "Item added to wishlist"
+}
+```
+
+### PATCH /api/wishlist/:boxId
+Update wishlist item (Customer only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "priority": "high",
+  "notes": "Changed my mind",
+  "quantity": 3
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Wishlist item updated"
+}
+```
+
+### DELETE /api/wishlist/:boxId
+Remove item from wishlist (Customer only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Item removed from wishlist"
+}
+```
+
+### DELETE /api/wishlist
+Clear entire wishlist (Customer only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Wishlist cleared"
+}
+```
+
+### POST /api/wishlist/sync
+Sync offline wishlist data with server (Customer only).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "localItems": [
+    {
+      "boxId": 1,
+      "addedAt": "2025-08-18T10:00:00Z",
+      "priority": "medium",
+      "notes": "Extra spicy please",
+      "quantity": 2
+    }
+  ]
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Wishlist synced successfully",
+  "data": {
+    "mergedItemsCount": 1,
+    "addedFromLocal": 1,
+    "conflictsResolved": 0
+  }
+}
+```
+
+**Features:**
+- **Offline Support**: Works without authentication, stores in localStorage
+- **Auto-Sync**: Automatically syncs when user logs in
+- **Conflict Resolution**: Local items take precedence over server items
+- **MongoDB Storage**: Uses MongoDB for frequent add/remove operations
+- **Priority Levels**: Support for low, medium, high priority items
 
 ---
 

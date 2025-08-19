@@ -145,27 +145,27 @@ INSERT INTO restaurants (name, phone_number, description, owner_id) VALUES
 ('Burger Barn', '+1-555-1003', 'Gourmet burgers made with locally sourced beef and artisanal buns, served with crispy fries.', 4),
 ('Taco Fiesta', '+1-555-1004', 'Vibrant Mexican street food with bold flavors, fresh ingredients, and homemade salsas.', 5);
 
--- Insert sample boxes (food items)
+-- Insert sample boxes (food items) with working image URLs
 INSERT INTO boxes (title, price, quantity, image, restaurant_id, is_available) VALUES
 -- Pasta Palace boxes
-('Classic Spaghetti Carbonara Box', 15.99, 25, '/images/carbonara-box.jpg', 1, true),
-('Chicken Parmigiana Box', 18.50, 20, '/images/chicken-parm-box.jpg', 1, true),
-('Vegetarian Lasagna Box', 16.75, 15, '/images/veggie-lasagna-box.jpg', 1, true),
+('Classic Spaghetti Carbonara Box', 15.99, 25, 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800&h=600&fit=crop&crop=center&auto=format', 1, true),
+('Chicken Parmigiana Box', 18.50, 20, 'https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?w=800&h=600&fit=crop&crop=center&auto=format', 1, true),
+('Vegetarian Lasagna Box', 16.75, 15, 'https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=800&h=600&fit=crop&crop=center&auto=format', 1, true),
 
 -- Sushi Zen boxes
-('California Roll Combo Box', 22.00, 30, '/images/california-combo-box.jpg', 2, true),
-('Salmon Teriyaki Bento Box', 24.50, 18, '/images/salmon-bento-box.jpg', 2, true),
-('Vegetarian Sushi Box', 19.99, 12, '/images/veggie-sushi-box.jpg', 2, true),
+('California Roll Combo Box', 22.00, 30, 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&h=600&fit=crop&crop=center&auto=format', 2, true),
+('Salmon Teriyaki Bento Box', 24.50, 18, 'https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56?w=800&h=600&fit=crop&crop=center&auto=format', 2, true),
+('Vegetarian Sushi Box', 19.99, 12, 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=800&h=600&fit=crop&crop=center&auto=format', 2, true),
 
 -- Burger Barn boxes
-('Classic Cheeseburger Box', 12.99, 35, '/images/cheeseburger-box.jpg', 3, true),
-('BBQ Bacon Burger Box', 15.50, 28, '/images/bbq-burger-box.jpg', 3, true),
-('Veggie Deluxe Burger Box', 13.75, 22, '/images/veggie-burger-box.jpg', 3, true),
+('Classic Cheeseburger Box', 12.99, 35, 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=600&fit=crop&crop=center&auto=format', 3, true),
+('BBQ Bacon Burger Box', 15.50, 28, 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=800&h=600&fit=crop&crop=center&auto=format', 3, true),
+('Veggie Deluxe Burger Box', 13.75, 22, 'https://images.unsplash.com/photo-1520072959219-c595dc870360?w=800&h=600&fit=crop&crop=center&auto=format', 3, true),
 
 -- Taco Fiesta boxes
-('Street Taco Trio Box', 11.99, 40, '/images/street-taco-box.jpg', 4, true),
-('Chicken Quesadilla Box', 13.50, 25, '/images/quesadilla-box.jpg', 4, true),
-('Carnitas Burrito Bowl Box', 14.25, 30, '/images/burrito-bowl-box.jpg', 4, true);
+('Street Taco Trio Box', 11.99, 40, 'https://images.unsplash.com/photo-1565299585323-38174c26a933?w=800&h=600&fit=crop&crop=center&auto=format', 4, true),
+('Chicken Quesadilla Box', 13.50, 25, 'https://images.unsplash.com/photo-1599974579688-8dbdd335c77f?w=800&h=600&fit=crop&crop=center&auto=format', 4, true),
+('Carnitas Burrito Bowl Box', 14.25, 30, 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=600&fit=crop&crop=center&auto=format', 4, true);
 
 -- Insert sample customers
 INSERT INTO users (email, username, password, role, phone_number, age, gender, address) VALUES
