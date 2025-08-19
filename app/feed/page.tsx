@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../../lib/contexts/AuthContext';
+import { usePopup } from '../../lib/contexts/PopupContext';
 
 interface Restaurant {
   id: number;
@@ -36,6 +37,7 @@ export default function RestaurantFeedPage() {
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
   
   const { user, logout } = useAuth();
+  const { showConfirm, showSuccessToast, showErrorToast } = usePopup();
 
   // Debounced search
   useEffect(() => {
@@ -98,11 +100,45 @@ export default function RestaurantFeedPage() {
       const newFavorites = new Set(prev);
       if (newFavorites.has(boxId)) {
         newFavorites.delete(boxId);
+        showSuccessToast('Removed from favorites');
       } else {
         newFavorites.add(boxId);
+        showSuccessToast('Added to favorites');
       }
       return newFavorites;
     });
+  };
+
+  const handleLogout = () => {
+    showConfirm({
+      title: 'Sign Out',
+      message: 'Are you sure you want to sign out?',
+      description: 'You will need to login again to access your account.',
+      type: 'warning',
+      confirmLabel: 'Sign Out',
+      onConfirm: () => {
+        logout();
+        showSuccessToast('You have been signed out successfully.');
+      }
+    });
+  };
+
+  const handleAddToCart = (box: Box) => {
+    if (!user) {
+      showConfirm({
+        title: 'Login Required',
+        message: 'You need to be logged in to add items to cart.',
+        description: 'Would you like to go to the login page?',
+        confirmLabel: 'Go to Login',
+        onConfirm: () => {
+          window.location.href = '/login';
+        }
+      });
+      return;
+    }
+
+    // TODO: Implement actual cart functionality
+    showSuccessToast(`Added "${box.title}" to cart!`);
   };
 
   const filteredBoxes = boxes.filter(box => {
@@ -151,7 +187,7 @@ export default function RestaurantFeedPage() {
             <div className="flex items-center space-x-2">
               {user && (
                 <button 
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-red-600 transition-colors rounded-lg hover:bg-gray-100"
                   title="Logout"
                 >
@@ -280,6 +316,7 @@ export default function RestaurantFeedPage() {
 
                   {/* Order Button */}
                   <button
+                    onClick={() => handleAddToCart(box)}
                     disabled={!box.isAvailable}
                     className={`w-full py-3 px-4 rounded-xl font-medium transition-all ${
                       box.isAvailable
