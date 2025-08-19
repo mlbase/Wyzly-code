@@ -70,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (user.role === 'admin') {
       redirectUrl = '/admin';
     } else if (user.role === 'restaurant') {
-      redirectUrl = '/restaurant';
+      redirectUrl = '/restaurants';
     }
 
     return res.status(200).json({

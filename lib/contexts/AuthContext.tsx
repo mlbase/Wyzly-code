@@ -8,6 +8,7 @@ interface User {
   username: string;
   role: 'customer' | 'restaurant' | 'admin';
   phoneNumber?: string;
+  token?: string;
 }
 
 interface AuthContextType {

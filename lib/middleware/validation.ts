@@ -1,13 +1,13 @@
 import { NextApiResponse } from 'next';
 import { z, ZodSchema } from 'zod';
-import { AuthenticatedRequest, ApiHandler } from './auth';
+import { AuthenticatedRequestWithUser, ApiHandler } from './auth';
 
 export const withValidation = (schema: {
   body?: ZodSchema;
   query?: ZodSchema;
 }) => {
   return (handler: ApiHandler) => {
-    return async (req: AuthenticatedRequest, res: NextApiResponse) => {
+    return async (req: AuthenticatedRequestWithUser, res: NextApiResponse) => {
       try {
         // Validate request body
         if (schema.body) {
@@ -32,7 +32,7 @@ export const withValidation = (schema: {
               details: result.error.flatten().fieldErrors
             });
           }
-          req.query = result.data;
+          req.query = result.data as any;
         }
 
         return handler(req, res);

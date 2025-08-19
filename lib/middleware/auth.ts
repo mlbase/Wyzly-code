@@ -10,8 +10,17 @@ export interface AuthenticatedRequest extends NextApiRequest {
   };
 }
 
+export interface AuthenticatedRequestWithUser extends NextApiRequest {
+  user: {
+    id: number;
+    email: string;
+    role: string;
+    username: string;
+  };
+}
+
 export type ApiHandler = (
-  req: AuthenticatedRequest,
+  req: AuthenticatedRequestWithUser,
   res: NextApiResponse
 ) => Promise<void> | void;
 
@@ -30,11 +39,25 @@ export const withAuth = (allowedRoles?: string[]) => {
         }
 
         // Verify JWT token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-        req.user = decoded;
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+          throw new Error('JWT_SECRET environment variable is not set');
+        }
+        
+        const decoded = jwt.verify(token, secret) as any;
+        if (!decoded || typeof decoded !== 'object') {
+          throw new Error('Invalid token payload');
+        }
+        
+        req.user = {
+          id: decoded.id || decoded.userId,
+          email: decoded.email,
+          role: decoded.role,
+          username: decoded.username
+        };
 
         // Check role permissions
-        if (allowedRoles && !allowedRoles.includes(req.user.role)) {
+        if (allowedRoles && req.user && !allowedRoles.includes(req.user.role)) {
           return res.status(403).json({
             success: false,
             error: 'Forbidden',
@@ -42,7 +65,7 @@ export const withAuth = (allowedRoles?: string[]) => {
           });
         }
 
-        return handler(req, res);
+        return handler(req as AuthenticatedRequestWithUser, res);
       } catch (error) {
         return res.status(401).json({
           success: false,

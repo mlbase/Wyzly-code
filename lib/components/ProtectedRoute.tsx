@@ -28,7 +28,7 @@ export function ProtectedRoute({
       if (allowedRoles && !allowedRoles.includes(user.role)) {
         // Redirect to appropriate dashboard based on user role
         const userRedirect = user.role === 'admin' ? '/admin' : 
-                           user.role === 'restaurant' ? '/restaurant' : '/feed';
+                           user.role === 'restaurant' ? '/restaurants' : '/feed';
         router.push(userRedirect);
         return;
       }

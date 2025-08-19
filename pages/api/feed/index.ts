@@ -9,6 +9,21 @@ interface FeedQuery {
   limit?: string;
 }
 
+type BoxWithRestaurant = {
+  id: number;
+  title: string;
+  price: any; // Decimal type from Prisma
+  quantity: number;
+  image: string | null;
+  isAvailable: boolean;
+  restaurant: {
+    id: number;
+    name: string;
+    description: string | null;
+    phoneNumber: string | null;
+  } | null;
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({
@@ -100,7 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ]);
 
     // Transform data for frontend
-    const transformedBoxes = boxes.map(box => ({
+    const transformedBoxes = boxes.map((box: BoxWithRestaurant) => ({
       id: box.id,
       title: box.title,
       price: parseFloat(box.price.toString()),

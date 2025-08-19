@@ -1,11 +1,18 @@
-import { NextApiResponse } from 'next';
-import { AuthenticatedRequest, ApiHandler } from './auth';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { AuthenticatedRequest } from './auth';
 
-export const withLogging = (handler: ApiHandler) => {
-  return async (req: AuthenticatedRequest, res: NextApiResponse) => {
+// Generic handler type that works with any request type
+type GenericHandler = (req: any, res: NextApiResponse) => Promise<void> | void;
+
+export const withLogging = (handler: GenericHandler) => {
+  return async (req: NextApiRequest | AuthenticatedRequest, res: NextApiResponse) => {
     const start = Date.now();
     const { method, url } = req;
-    const userInfo = req.user ? `User: ${req.user.id}(${req.user.role})` : 'Anonymous';
+    
+    // Safely check for user info
+    const userInfo = (req as AuthenticatedRequest).user 
+      ? `User: ${(req as AuthenticatedRequest).user!.id}(${(req as AuthenticatedRequest).user!.role})`
+      : 'Anonymous';
 
     console.log(`[${new Date().toISOString()}] ${method} ${url} - ${userInfo}`);
 

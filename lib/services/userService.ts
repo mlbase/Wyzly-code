@@ -1,5 +1,4 @@
 import { prisma } from '../prisma';
-import { UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -7,7 +6,7 @@ export interface CreateUserData {
   email: string;
   username: string;
   password: string;
-  role?: UserRole;
+  role?: 'customer' | 'restaurant' | 'admin';
   phoneNumber?: string;
   age?: number;
   gender?: string;
@@ -17,7 +16,7 @@ export interface CreateUserData {
 export interface LoginData {
   email: string;
   password: string;
-  role: UserRole;
+  role: 'customer' | 'restaurant' | 'admin';
 }
 
 export const userService = {
@@ -44,7 +43,7 @@ export const userService = {
       data: {
         ...userData,
         password: hashedPassword,
-        role: userData.role || UserRole.CUSTOMER
+        role: userData.role || 'customer'
       },
       select: {
         id: true,
@@ -128,7 +127,7 @@ export const userService = {
   },
 
   async findAll(filters?: { 
-    role?: UserRole; 
+    role?: 'customer' | 'restaurant' | 'admin'; 
     page?: number; 
     limit?: number; 
   }) {

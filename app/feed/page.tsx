@@ -6,10 +6,17 @@ import {
   ClockIcon,
   FunnelIcon,
   MagnifyingGlassIcon,
+  UserIcon,
   ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../../lib/contexts/AuthContext';
+import { usePopup } from '../../lib/contexts/PopupContext';
+import { useWishlist } from '../../lib/hooks/useWishlist';
+import { useFavorites } from '../../lib/hooks/useFavorites';
+import { Button, Card, Input, Badge, WishlistToggle, WishlistSidebar } from '../../lib/design-system';
+import { LoginPopup } from '../../lib/components/ui/LoginPopup';
+import { BoxCard } from '../../lib/components/ui/BoxCard';
 
 interface Restaurant {
   id: number;
@@ -21,7 +28,7 @@ interface Restaurant {
 interface Box {
   id: number;
   title: string;
-  price: number;
+  price: number | string; // Can be Decimal from Prisma
   quantity: number;
   image?: string;
   isAvailable: boolean;
@@ -33,9 +40,40 @@ export default function RestaurantFeedPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [favorites, setFavorites] = useState<Set<number>>(new Set());
+  const [wishlistSidebarOpen, setWishlistSidebarOpen] = useState(false);
+  const [loginPopupOpen, setLoginPopupOpen] = useState(false);
   
   const { user, logout } = useAuth();
+  const { showConfirm, showSuccessToast, showErrorToast } = usePopup();
+  const { 
+    wishlist, 
+    isInWishlist, 
+    addToWishlist, 
+    removeFromWishlist,
+    updateWishlistItem,
+    clearWishlist,
+    forceSyncWithServer,
+    isOfflineMode,
+    syncStatus 
+  } = useWishlist();
+
+  const { 
+    isFavorite, 
+    toggleFavorite
+  } = useFavorites();
+
+  // Check for sync on mount when user is logged in
+  useEffect(() => {
+    if (user && !isOfflineMode) {
+      // Check if there's local wishlist data that needs syncing
+      const hasLocalData = typeof window !== 'undefined' && 
+        (localStorage.getItem('wyzly_local_wishlist')?.length ?? 0) > 2; // More than just "[]"
+      
+      if (hasLocalData) {
+        forceSyncWithServer();
+      }
+    }
+  }, [user, isOfflineMode, forceSyncWithServer]);
 
   // Debounced search
   useEffect(() => {
@@ -54,55 +92,109 @@ export default function RestaurantFeedPage() {
       if (searchQuery) params.append('search', searchQuery);
       if (selectedCategory !== 'all') params.append('category', selectedCategory);
       
-      const response = await fetch(`/api/feed?${params.toString()}`);
+      const response = await fetch(`/api/boxes?${params.toString()}`);
       const data = await response.json();
       
       if (data.success) {
         setBoxes(data.data.boxes);
       } else {
         console.error('Failed to fetch boxes:', data.error);
-        // Fallback to mock data
-        setBoxes([
-          {
-            id: 1,
-            title: 'Classic Spaghetti Carbonara Box',
-            price: 15.99,
-            quantity: 25,
-            image: '/images/carbonara-box.jpg',
-            isAvailable: true,
-            restaurant: { id: 1, name: 'Pasta Palace', description: 'Authentic Italian cuisine' }
-          }
-        ]);
+        showErrorToast('Failed to fetch boxes', data.error);
+        setBoxes([]); // Clear boxes on error
       }
     } catch (error) {
       console.error('Error fetching boxes:', error);
-      // Fallback to mock data
-      setBoxes([
-        {
-          id: 1,
-          title: 'Classic Spaghetti Carbonara Box',
-          price: 15.99,
-          quantity: 25,
-          image: '/images/carbonara-box.jpg',
-          isAvailable: true,
-          restaurant: { id: 1, name: 'Pasta Palace', description: 'Authentic Italian cuisine' }
-        }
-      ]);
+      showErrorToast('Failed to fetch boxes', 'Network error');
+      setBoxes([]); // Clear boxes on error
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleFavorite = (boxId: number) => {
-    setFavorites(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(boxId)) {
-        newFavorites.delete(boxId);
-      } else {
-        newFavorites.add(boxId);
+  const handleToggleFavorite = (boxId: number) => {
+    const newStatus = toggleFavorite(boxId);
+    if (newStatus) {
+      showSuccessToast('Added to favorites');
+    } else {
+      showSuccessToast('Removed from favorites');
+    }
+  };
+
+  const handleLogout = () => {
+    showConfirm({
+      title: 'Sign Out',
+      message: 'Are you sure you want to sign out?',
+      description: 'You will need to login again to access your account.',
+      type: 'warning',
+      confirmLabel: 'Sign Out',
+      onConfirm: () => {
+        logout();
+        showSuccessToast('You have been signed out successfully.');
       }
-      return newFavorites;
     });
+  };
+
+  const handleAddToCart = (quantity: number) => {
+    // TODO: Implement actual cart functionality (this would be for final checkout)
+    showSuccessToast(`Added ${quantity} item(s) to cart!`);
+  };
+
+  const handleAddToWishlist = async (box: Box) => {
+    const inWishlist = isInWishlist(box.id);
+    
+    if (inWishlist) {
+      const success = await removeFromWishlist(box.id);
+      if (success) {
+        if (isOfflineMode) {
+          showSuccessToast(`Removed "${box.title}" from wishlist • Sign in to sync`);
+        } else {
+          showSuccessToast(`Removed "${box.title}" from wishlist`);
+        }
+      } else {
+        showErrorToast('Failed to remove from wishlist');
+      }
+    } else {
+      const success = await addToWishlist(box.id, 'medium', undefined, 1);
+      if (success) {
+        if (isOfflineMode) {
+          showSuccessToast(`Added "${box.title}" to wishlist • Sign in to sync`);
+        } else {
+          showSuccessToast(`Added "${box.title}" to wishlist`);
+        }
+      } else {
+        showErrorToast('Failed to add to wishlist');
+      }
+    }
+  };
+
+
+  const handleWishlistRemove = async (boxId: number) => {
+    const success = await removeFromWishlist(boxId);
+    if (success) {
+      showSuccessToast('Item removed from wishlist');
+    } else {
+      showErrorToast('Failed to remove item');
+    }
+  };
+
+  const handleWishlistUpdateQuantity = async (boxId: number, quantity: number) => {
+    const success = await updateWishlistItem(boxId, undefined, undefined, quantity);
+    if (!success) {
+      showErrorToast('Failed to update quantity');
+    }
+  };
+
+  const handleWishlistClearAll = async () => {
+    const success = await clearWishlist();
+    if (success) {
+      if (isOfflineMode) {
+        showSuccessToast('Cart cleared • Sign in to sync');
+      } else {
+        showSuccessToast('Cart cleared');
+      }
+    } else {
+      showErrorToast('Failed to clear cart');
+    }
   };
 
   const filteredBoxes = boxes.filter(box => {
@@ -142,21 +234,56 @@ export default function RestaurantFeedPage() {
                 <span className="text-lg font-bold text-white">W</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Wyzly Feed</h1>
+                <div className="flex items-center space-x-2">
+                  <h1 className="text-xl font-bold text-gray-900">Wyzly Feed</h1>
+                  {isOfflineMode && (
+                    <Badge variant="warning" size="sm">
+                      Offline
+                    </Badge>
+                  )}
+                  {syncStatus === 'syncing' && (
+                    <Badge variant="primary" size="sm">
+                      Syncing...
+                    </Badge>
+                  )}
+                  {syncStatus === 'synced' && (
+                    <Badge variant="success" size="sm">
+                      Synced
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-sm text-gray-600">
                   {user ? `Welcome back, ${user.username}!` : 'Discover amazing food boxes'}
+                  {isOfflineMode && (
+                    <span className="text-amber-600"> • Cart saved locally</span>
+                  )}
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              {user && (
+              {/* Cart Toggle */}
+              <WishlistToggle 
+                itemCount={wishlist?.itemCount || 0}
+                onClick={() => setWishlistSidebarOpen(true)}
+              />
+              
+              {user ? (
                 <button 
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-red-600 transition-colors rounded-lg hover:bg-gray-100"
                   title="Logout"
                 >
                   <ArrowRightOnRectangleIcon className="h-5 w-5" />
                   <span className="text-sm font-medium hidden sm:block">Logout</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setLoginPopupOpen(true)}
+                  className="flex items-center space-x-2 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white transition-colors rounded-lg"
+                  title="Login"
+                >
+                  <UserIcon className="h-5 w-5" />
+                  <span className="text-sm font-medium hidden sm:block">Login</span>
                 </button>
               )}
               <button className="p-2 text-gray-600 hover:text-gray-900 transition-colors">
@@ -166,14 +293,15 @@ export default function RestaurantFeedPage() {
           </div>
 
           {/* Search Bar */}
-          <div className="mt-4 relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
+          <div className="mt-4">
+            <Input
               type="text"
               placeholder="Search restaurants or food boxes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-100 border-0 rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+              variant="filled"
+              size="lg"
+              leftIcon={<MagnifyingGlassIcon className="h-5 w-5" />}
             />
           </div>
 
@@ -207,94 +335,20 @@ export default function RestaurantFeedPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredBoxes.map((box) => (
-              <div
+              <BoxCard
                 key={box.id}
-                className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
-              >
-                {/* Image */}
-                <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200">
-                  {box.image ? (
-                    <img
-                      src={box.image}
-                      alt={box.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-4xl">🥘</span>
-                    </div>
-                  )}
-                  
-                  {/* Favorite Button */}
-                  <button
-                    onClick={() => toggleFavorite(box.id)}
-                    className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all"
-                  >
-                    {favorites.has(box.id) ? (
-                      <HeartSolidIcon className="h-5 w-5 text-red-500" />
-                    ) : (
-                      <HeartIcon className="h-5 w-5 text-gray-600" />
-                    )}
-                  </button>
-
-                  {/* Availability Badge */}
-                  {!box.isAvailable && (
-                    <div className="absolute top-3 left-3 px-3 py-1 bg-red-500 text-white text-xs font-medium rounded-full">
-                      Sold Out
-                    </div>
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className="p-4">
-                  {/* Restaurant Info */}
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="h-6 w-6 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-bold text-white">
-                        {box.restaurant.name.charAt(0)}
-                      </span>
-                    </div>
-                    <span className="text-sm font-medium text-gray-700">
-                      {box.restaurant.name}
-                    </span>
-                  </div>
-
-                  {/* Box Title */}
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                    {box.title}
-                  </h3>
-
-                  {/* Price and Quantity */}
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-lg font-bold text-orange-600">
-                      ${box.price.toFixed(2)}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {box.quantity > 0 ? `${box.quantity} left` : 'Out of stock'}
-                    </span>
-                  </div>
-
-                  {/* Order Button */}
-                  <button
-                    disabled={!box.isAvailable}
-                    className={`w-full py-3 px-4 rounded-xl font-medium transition-all ${
-                      box.isAvailable
-                        ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600'
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    }`}
-                  >
-                    {box.isAvailable ? 'Add to Cart' : 'Sold Out'}
-                  </button>
-                </div>
-              </div>
+                box={box}
+                onToggleFavorite={handleToggleFavorite}
+                onAddToWishlist={handleAddToWishlist}
+                isFavorite={isFavorite}
+                isInWishlist={isInWishlist}
+                showRestaurantInfo={true}
+              />
             ))}
           </div>
         )}
       </div>
+
 
       {/* Bottom Navigation Spacer */}
       <div className="h-20"></div>
@@ -320,6 +374,28 @@ export default function RestaurantFeedPage() {
           </button>
         </div>
       </div>
+
+      {/* Cart Sidebar */}
+      <WishlistSidebar
+        isOpen={wishlistSidebarOpen}
+        onClose={() => setWishlistSidebarOpen(false)}
+        items={wishlist?.items || []}
+        onRemoveItem={handleWishlistRemove}
+        onUpdateQuantity={handleWishlistUpdateQuantity}
+        onAddToCart={handleAddToCart}
+        onClearAll={handleWishlistClearAll}
+        loading={false}
+      />
+
+      {/* Login Popup */}
+      <LoginPopup
+        isOpen={loginPopupOpen}
+        onClose={() => setLoginPopupOpen(false)}
+        onSuccess={() => {
+          // Login successful, local data will be automatically synced by useWishlist hook
+          showSuccessToast('Login successful! Your cart will sync automatically.');
+        }}
+      />
     </div>
   );
 }

@@ -55,3 +55,8 @@
 - amount
 - status
 - method
+
+### 8. WishList
+- userId
+- boxId
+- quantity

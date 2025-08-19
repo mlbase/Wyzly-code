@@ -4,23 +4,24 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronRightIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../../lib/contexts/AuthContext';
+import { usePopup } from '../../lib/contexts/PopupContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const [role, setRole] = useState<'customer' | 'restaurant' | 'admin'>('customer');
   
   const { login, user } = useAuth();
+  const { showError, showSuccessToast } = usePopup();
   const router = useRouter();
 
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
       const redirectUrl = user.role === 'admin' ? '/admin' : 
-                         user.role === 'restaurant' ? '/restaurant' : '/feed';
+                         user.role === 'restaurant' ? '/restaurants' : '/feed';
       router.push(redirectUrl);
     }
   }, [user, router]);
@@ -28,19 +29,27 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
     
     try {
       const result = await login(email, password, role);
       
       if (result.success && result.redirectUrl) {
+        showSuccessToast(`Welcome back!`, 'Login successful');
         // Redirect based on role
         router.push(result.redirectUrl);
       } else {
-        setError(result.error || 'Login failed');
+        showError({
+          title: 'Login Failed',
+          message: result.error || 'Unable to log in with the provided credentials.',
+          type: 'error'
+        });
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      showError({
+        title: 'Connection Error',
+        message: 'Unable to connect to the server. Please check your internet connection and try again.',
+        type: 'error'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -101,13 +110,6 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
-
-          {/* Error Display */}
-          {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email Input */}

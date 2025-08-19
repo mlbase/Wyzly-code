@@ -1,4 +1,4 @@
-import { AuthenticatedRequest, ApiHandler } from './auth';
+import { ApiHandler } from './auth';
 
 // Compose multiple middlewares
 export const compose = (...middlewares: Array<(handler: ApiHandler) => ApiHandler>) => {
