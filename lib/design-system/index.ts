@@ -30,5 +30,8 @@ export type { InputProps } from './Input';
 export { Badge } from './Badge';
 export type { BadgeProps } from './Badge';
 
+export { WishlistCard, WishlistSummary } from './WishlistCard';
+export { WishlistSidebar, WishlistToggle } from './WishlistSidebar';
+
 // Utilities
 export { cn } from '../utils';

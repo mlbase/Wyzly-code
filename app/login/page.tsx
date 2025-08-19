@@ -21,7 +21,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (user) {
       const redirectUrl = user.role === 'admin' ? '/admin' : 
-                         user.role === 'restaurant' ? '/restaurant' : '/feed';
+                         user.role === 'restaurant' ? '/restaurants' : '/feed';
       router.push(redirectUrl);
     }
   }, [user, router]);

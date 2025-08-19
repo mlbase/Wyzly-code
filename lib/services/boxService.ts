@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { InventoryType } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 
 export interface CreateBoxData {
   title: string;
@@ -18,7 +18,7 @@ export interface UpdateBoxData {
 }
 
 export interface InventoryChange {
-  type: InventoryType;
+  type: 'increase' | 'decrease';
   quantity: number;
 }
 
@@ -155,7 +155,7 @@ export const boxService = {
     }
 
     // Calculate new quantity
-    const newQuantity = change.type === InventoryType.INCREASE 
+    const newQuantity = change.type === 'increase' 
       ? box.quantity + change.quantity
       : box.quantity - change.quantity;
 
@@ -164,7 +164,7 @@ export const boxService = {
     }
 
     // Use transaction to update box and create inventory command
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => {
       // Update box quantity and availability
       const updatedBox = await tx.box.update({
         where: { id: boxId },
