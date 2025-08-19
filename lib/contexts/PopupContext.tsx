@@ -1,10 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useState } from 'react';
-import { ErrorPopup } from '../components/ui/ErrorPopup';
-import { ConfirmPopup } from '../components/ui/ConfirmPopup';
-import { InfoPopup } from '../components/ui/InfoPopup';
-import { ToastContainer, ToastProps } from '../components/ui/Toast';
+import { 
+  ErrorDialog, 
+  ConfirmDialog, 
+  InfoDialog, 
+  ToastContainer, 
+  ToastProps 
+} from '../design-system';
 
 interface ErrorPopupState {
   title?: string;
@@ -125,19 +128,19 @@ export function PopupProvider({ children }: { children: React.ReactNode }) {
 
   // Quick toast methods
   const showSuccessToast = (message: string, title?: string) => {
-    showToast({ type: 'success', message, title });
+    showToast({ variant: 'success', message, title });
   };
 
   const showErrorToast = (message: string, title?: string) => {
-    showToast({ type: 'error', message, title });
+    showToast({ variant: 'error', message, title });
   };
 
   const showWarningToast = (message: string, title?: string) => {
-    showToast({ type: 'warning', message, title });
+    showToast({ variant: 'warning', message, title });
   };
 
   const showInfoToast = (message: string, title?: string) => {
-    showToast({ type: 'info', message, title });
+    showToast({ variant: 'info', message, title });
   };
 
   const value = {
@@ -159,30 +162,48 @@ export function PopupProvider({ children }: { children: React.ReactNode }) {
     <PopupContext.Provider value={value}>
       {children}
       
-      {/* Error Popup */}
+      {/* Error Dialog */}
       {errorPopup && (
-        <ErrorPopup
+        <ErrorDialog
           isOpen={true}
           onClose={hideError}
-          {...errorPopup}
+          title={errorPopup.title}
+          message={errorPopup.message}
+          description={errorPopup.details}
+          actionLabel={errorPopup.actionLabel}
+          onAction={errorPopup.onAction}
         />
       )}
       
-      {/* Confirm Popup */}
+      {/* Confirm Dialog */}
       {confirmPopup && (
-        <ConfirmPopup
+        <ConfirmDialog
           isOpen={true}
           onClose={hideConfirm}
-          {...confirmPopup}
+          variant={confirmPopup.type}
+          title={confirmPopup.title}
+          message={confirmPopup.message}
+          description={confirmPopup.description}
+          confirmLabel={confirmPopup.confirmLabel}
+          cancelLabel={confirmPopup.cancelLabel}
+          onConfirm={confirmPopup.onConfirm}
+          loading={confirmPopup.loading}
         />
       )}
       
-      {/* Info Popup */}
+      {/* Info Dialog */}
       {infoPopup && (
-        <InfoPopup
+        <InfoDialog
           isOpen={true}
           onClose={hideInfo}
-          {...infoPopup}
+          title={infoPopup.title}
+          message={infoPopup.message}
+          description={infoPopup.description}
+          actionLabel={infoPopup.actionLabel}
+          onAction={infoPopup.onAction}
+          showSecondaryAction={infoPopup.showSecondaryAction}
+          secondaryActionLabel={infoPopup.secondaryActionLabel}
+          onSecondaryAction={infoPopup.onSecondaryAction}
         />
       )}
       
