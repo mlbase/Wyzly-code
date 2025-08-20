@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ChevronRightIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../../lib/contexts/AuthContext';
 import { usePopup } from '../../lib/contexts/PopupContext';
@@ -209,12 +210,12 @@ export default function LoginPage() {
           <div className="text-center pt-4 border-t border-gray-100">
             <p className="text-sm text-gray-600">
               Don&apos;t have an account?{' '}
-              <button
-                type="button"
+              <Link
+                href="/register"
                 className="text-orange-600 hover:text-orange-500 font-medium"
               >
                 Sign up
-              </button>
+              </Link>
             </p>
           </div>
         </div>
