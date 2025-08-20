@@ -1,8 +1,30 @@
 import { NextApiResponse } from 'next';
 import { withAuth, AuthenticatedRequestWithUser } from '../../../lib/middleware';
 import dbConnect from '../../../lib/mongodb';
-import Wishlist from '../../../lib/models/Wishlist';
+import Wishlist, { IWishlistItem } from '../../../lib/models/Wishlist';
 import { prisma } from '../../../lib/prisma';
+
+interface PopulatedWishlistItem {
+  boxId: number;
+  addedAt: string;
+  priority: 'low' | 'medium' | 'high';
+  notes: string; // Use empty string as sentinel value
+  quantity: number;
+  box: {
+    id: number;
+    title: string;
+    price: number;
+    quantity: number;
+    image: string; // Use empty string as sentinel value
+    isAvailable: boolean;
+    restaurant: {
+      id: number;
+      name: string;
+      description: string; // Use empty string as sentinel value
+      phoneNumber: string; // Use empty string as sentinel value
+    };
+  };
+}
 
 async function handler(req: AuthenticatedRequestWithUser, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -36,7 +58,7 @@ async function handler(req: AuthenticatedRequestWithUser, res: NextApiResponse) 
     }
 
     // Get box IDs from wishlist
-    const boxIds = wishlist.items.map((item: any) => item.boxId);
+    const boxIds = wishlist.items.map((item: IWishlistItem) => item.boxId);
 
     // Fetch box data from PostgreSQL with restaurant information
     const boxes = await prisma.box.findMany({
@@ -62,7 +84,7 @@ async function handler(req: AuthenticatedRequestWithUser, res: NextApiResponse) 
 
     // Populate wishlist items with box data
     const populatedItems = wishlist.items
-      .map((item: any) => {
+      .map((item: IWishlistItem): PopulatedWishlistItem | null => {
         const box = boxMap.get(item.boxId);
         
         if (!box) {
@@ -72,31 +94,31 @@ async function handler(req: AuthenticatedRequestWithUser, res: NextApiResponse) 
 
         return {
           boxId: item.boxId,
-          addedAt: item.addedAt,
-          priority: item.priority,
-          notes: item.notes,
+          addedAt: item.addedAt.toISOString(),
+          priority: item.priority || 'medium',
+          notes: item.notes || '',
           quantity: item.quantity || 1,
           box: {
             id: box.id,
             title: box.title,
             price: parseFloat(box.price.toString()),
             quantity: box.quantity,
-            image: box.image,
+            image: box.image || '',
             isAvailable: box.isAvailable && box.quantity > 0,
             restaurant: {
-              id: box.restaurant?.id,
+              id: box.restaurant?.id || -1, // Use -1 as sentinel for unknown restaurant
               name: box.restaurant?.name || 'Unknown Restaurant',
-              description: box.restaurant?.description,
-              phoneNumber: box.restaurant?.phoneNumber
+              description: box.restaurant?.description || '',
+              phoneNumber: box.restaurant?.phoneNumber || ''
             }
           }
         };
       })
-      .filter(item => item !== null); // Remove items where box was not found
+      .filter((item): item is PopulatedWishlistItem => item !== null); // Remove items where box was not found
 
     // Sort items by priority and then by addedAt (most recent first)
-    const priorityOrder = { high: 3, medium: 2, low: 1 };
-    populatedItems.sort((a: any, b: any) => {
+    const priorityOrder: Record<'high' | 'medium' | 'low', number> = { high: 3, medium: 2, low: 1 };
+    populatedItems.sort((a: PopulatedWishlistItem, b: PopulatedWishlistItem) => {
       const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
       if (priorityDiff !== 0) return priorityDiff;
       
@@ -104,8 +126,8 @@ async function handler(req: AuthenticatedRequestWithUser, res: NextApiResponse) 
     });
 
     // Group items by availability
-    const availableItems = populatedItems.filter((item: any) => item.box.isAvailable);
-    const unavailableItems = populatedItems.filter((item: any) => !item.box.isAvailable);
+    const availableItems = populatedItems.filter((item: PopulatedWishlistItem) => item.box.isAvailable);
+    const unavailableItems = populatedItems.filter((item: PopulatedWishlistItem) => !item.box.isAvailable);
 
     return res.status(200).json({
       success: true,

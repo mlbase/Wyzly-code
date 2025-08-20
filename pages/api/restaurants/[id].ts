@@ -55,8 +55,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       phoneNumber: restaurant.phoneNumber,
       description: restaurant.description,
       ownerId: restaurant.ownerId,
-      createdAt: restaurant.createdAt.toISOString(),
-      updatedAt: restaurant.updatedAt.toISOString(),
+      createdAt: restaurant.createdAt?.toISOString() || new Date().toISOString(),
+      updatedAt: restaurant.updatedAt?.toISOString() || new Date().toISOString(),
       boxes: restaurant.boxes.map(box => ({
         id: box.id,
         title: box.title,
