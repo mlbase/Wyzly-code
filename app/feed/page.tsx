@@ -7,7 +7,8 @@ import {
   FunnelIcon,
   MagnifyingGlassIcon,
   UserIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  ReceiptRefundIcon
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../../lib/contexts/AuthContext';
@@ -23,6 +24,9 @@ interface Restaurant {
   name: string;
   phoneNumber?: string;
   description?: string;
+  ownerId: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface Box {
@@ -261,6 +265,18 @@ export default function RestaurantFeedPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              {/* Orders Button */}
+              {user && (
+                <button
+                  onClick={() => window.location.href = '/orders/me'}
+                  className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-orange-600 transition-colors rounded-lg hover:bg-gray-100"
+                  title="My Orders"
+                >
+                  <ReceiptRefundIcon className="h-5 w-5" />
+                  <span className="text-sm font-medium hidden sm:block">Orders</span>
+                </button>
+              )}
+              
               {/* Cart Toggle */}
               <WishlistToggle 
                 itemCount={wishlist?.itemCount || 0}
@@ -364,7 +380,10 @@ export default function RestaurantFeedPage() {
             <HeartIcon className="h-6 w-6" />
             <span className="text-xs">Favorites</span>
           </button>
-          <button className="flex flex-col items-center space-y-1 text-gray-400">
+          <button 
+            onClick={() => window.location.href = '/orders/me'}
+            className="flex flex-col items-center space-y-1 text-gray-400"
+          >
             <ClockIcon className="h-6 w-6" />
             <span className="text-xs">Orders</span>
           </button>

@@ -1,5 +1,5 @@
 import { NextApiResponse } from 'next';
-import { withAuth, AuthenticatedRequestWithUser } from '../../../lib/middleware';
+import { withCustomerAuth, AuthenticatedRequestWithUser } from '../../../lib/middleware';
 import { orderService } from '../../../lib/services/orderService';
 
 interface CreateOrderRequest extends AuthenticatedRequestWithUser {
@@ -24,4 +24,4 @@ async function handler(req: CreateOrderRequest, res: NextApiResponse) {
   }
 }
 
-export default withAuth()(handler);
+export default withCustomerAuth()(handler);

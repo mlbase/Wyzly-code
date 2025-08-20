@@ -436,8 +436,8 @@ export function useWishlist(): UseWishlistReturn {
       const data = await response.json();
 
       if (data.success) {
-        // The server response is the source of truth, so we update the state with it.
-        setWishlist(data.data.wishlist);
+        // Instead of using the raw response, fetch the populated wishlist to get complete box data
+        await fetchWishlist();
         return true;
       } else {
         // If the server update fails, revert to the original state.
