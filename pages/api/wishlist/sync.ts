@@ -64,10 +64,7 @@ async function handler(req: SyncRequest, res: NextApiResponse) {
     let serverWishlist = await Wishlist.findByUserId(userId);
     const serverItems = serverWishlist?.items || [];
     
-    // Create maps for efficient lookup
-    const serverItemsMap = new Map(
-      serverItems.map((item: any) => [item.boxId, item])
-    );
+    // Create map for efficient lookup
     const localItemsMap = new Map(
       localItems.map(item => [item.boxId, item])
     );

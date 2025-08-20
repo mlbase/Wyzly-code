@@ -1,7 +1,7 @@
 import { NextApiResponse } from 'next';
 import { withAuth, AuthenticatedRequestWithUser } from '../../../lib/middleware';
 import dbConnect from '../../../lib/mongodb';
-import Wishlist from '../../../lib/models/Wishlist';
+import Wishlist, { IWishlistItem } from '../../../lib/models/Wishlist';
 
 interface WishlistItemRequest extends AuthenticatedRequestWithUser {
   query: {
@@ -14,11 +14,11 @@ interface WishlistItemRequest extends AuthenticatedRequestWithUser {
   };
 }
 
-async function handler(req: WishlistItemRequest, res: NextApiResponse) {
+async function handler(req: AuthenticatedRequestWithUser, res: NextApiResponse) {
   await dbConnect();
 
   const userId = req.user.id;
-  const boxId = parseInt(req.query.boxId);
+  const boxId = parseInt(req.query.boxId as string);
 
   if (isNaN(boxId)) {
     return res.status(400).json({
@@ -54,7 +54,7 @@ async function handleRemoveFromWishlist(userId: number, boxId: number, res: Next
     }
 
     // Check if item exists
-    const itemExists = wishlist.items.some((item: any) => item.boxId === boxId);
+    const itemExists = wishlist.items.some((item: IWishlistItem) => item.boxId === boxId);
     
     if (!itemExists) {
       return res.status(404).json({
@@ -128,7 +128,7 @@ async function handleUpdateWishlistItem(
       });
     }
 
-    const itemIndex = wishlist.items.findIndex((item: any) => item.boxId === boxId);
+    const itemIndex = wishlist.items.findIndex((item: IWishlistItem) => item.boxId === boxId);
     
     if (itemIndex === -1) {
       return res.status(404).json({

@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Model } from 'mongoose';
 
 // Interface for Wishlist document
 export interface IWishlistItem {
@@ -15,6 +15,17 @@ export interface IWishlist extends Document {
   items: IWishlistItem[];
   createdAt: Date;
   updatedAt: Date;
+  // Instance methods
+  addItem(boxId: number, priority?: string, notes?: string, quantity?: number): Promise<IWishlist>;
+  removeItem(boxId: number): Promise<IWishlist>;
+  clearWishlist(): Promise<IWishlist>;
+  getItemsByPriority(priority: string): IWishlistItem[];
+}
+
+// Static methods interface
+export interface IWishlistModel extends Model<IWishlist> {
+  findByUserId(userId: number): Promise<IWishlist | null>;
+  createOrUpdateWishlist(userId: number, boxId: number, priority?: string, notes?: string, quantity?: number): Promise<IWishlist>;
 }
 
 // Wishlist Item Schema (embedded in Wishlist)
@@ -143,5 +154,5 @@ WishlistSchema.statics.createOrUpdateWishlist = async function(userId: number, b
   return wishlist.save();
 };
 
-// Export model (handle potential re-compilation issues in development)
-export default mongoose.models.Wishlist || mongoose.model<IWishlist>('Wishlist', WishlistSchema);
+// Export model with proper typing (handle potential re-compilation issues in development)
+export default (mongoose.models.Wishlist as IWishlistModel) || mongoose.model<IWishlist, IWishlistModel>('Wishlist', WishlistSchema);
