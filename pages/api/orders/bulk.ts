@@ -1,17 +1,10 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiResponse } from 'next';
 import { prisma } from '../../../lib/prisma';
-import { authenticateRequest, AuthenticatedRequestWithUser } from '../../../lib/middleware/auth';
+import { withCustomerAuth, AuthenticatedRequestWithUser } from '../../../lib/middleware';
 
 interface OrderItem {
   boxId: number;
   quantity: number;
-}
-
-interface BulkOrderRequest extends AuthenticatedRequestWithUser {
-  body: {
-    items: OrderItem[];
-    paymentMethod: 'credit_card' | 'debit_card' | 'paypal' | 'cash' | 'mock';
-  };
 }
 
 interface ProcessedOrderGroup {
@@ -27,7 +20,7 @@ interface ProcessedOrderGroup {
   totalAmount: number;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: AuthenticatedRequestWithUser, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({
       success: false,
@@ -36,17 +29,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Authenticate the request
-    const authResult = await authenticateRequest(req);
-    if (!authResult.success || !authResult.user) {
-      return res.status(401).json({
-        success: false,
-        error: 'Authentication required'
-      });
-    }
-
-    const { items, paymentMethod = 'mock' }: BulkOrderRequest['body'] = req.body;
-    const userId = authResult.user.id;
+    const { items = [], paymentMethod = 'mock' } = req.body || {};
+    const userId = req.user.id;
 
     // Validate input
     if (!Array.isArray(items) || items.length === 0) {
@@ -112,12 +96,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       for (const item of items) {
         const box = boxes.find(b => b.id === item.boxId)!;
-        const restaurantId = box.restaurant.id;
+        const restaurantId = box.restaurant?.id || 0;
         
         if (!restaurantGroups.has(restaurantId)) {
           restaurantGroups.set(restaurantId, {
             restaurantId,
-            restaurantName: box.restaurant.name,
+            restaurantName: box.restaurant?.name || 'Unknown Restaurant',
             items: [],
             totalAmount: 0
           });
@@ -142,7 +126,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const createdPayments: any[] = [];
       const inventoryCommands: any[] = [];
 
-      for (const [restaurantId, group] of restaurantGroups) {
+      for (const [restaurantId, group] of Array.from(restaurantGroups.entries())) {
         // Create individual orders for each item in the group
         for (const item of group.items) {
           const order = await tx.order.create({
@@ -256,3 +240,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 }
+
+export default withCustomerAuth()(handler);

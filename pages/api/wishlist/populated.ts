@@ -75,6 +75,7 @@ async function handler(req: AuthenticatedRequestWithUser, res: NextApiResponse) 
           addedAt: item.addedAt,
           priority: item.priority,
           notes: item.notes,
+          quantity: item.quantity || 1,
           box: {
             id: box.id,
             title: box.title,

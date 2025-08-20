@@ -7,13 +7,14 @@ import {
   PhoneIcon,
   MapPinIcon,
   ClockIcon,
-  StarIcon
+  StarIcon,
+  ReceiptRefundIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../../lib/contexts/AuthContext';
 import { usePopup } from '../../../lib/contexts/PopupContext';
 import { useWishlist } from '../../../lib/hooks/useWishlist';
 import { useFavorites } from '../../../lib/hooks/useFavorites';
-import { Button, Card, Badge } from '../../../lib/design-system';
+import { Button, Card, Badge, WishlistToggle, WishlistSidebar } from '../../../lib/design-system';
 import { BoxCard } from '../../../lib/components/ui/BoxCard';
 
 interface Restaurant {
@@ -55,13 +56,17 @@ export default function RestaurantDetailPage() {
   const [restaurant, setRestaurant] = useState<RestaurantWithBoxes | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [wishlistSidebarOpen, setWishlistSidebarOpen] = useState(false);
 
   const { user } = useAuth();
   const { showSuccessToast, showErrorToast } = usePopup();
   const { 
+    wishlist,
     isInWishlist, 
     addToWishlist, 
     removeFromWishlist,
+    updateWishlistItem,
+    clearWishlist,
     isOfflineMode 
   } = useWishlist();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -132,6 +137,40 @@ export default function RestaurantDetailPage() {
     router.back();
   };
 
+  const handleAddToCart = (quantity: number) => {
+    // TODO: Implement actual cart functionality (this would be for final checkout)
+    showSuccessToast(`Added ${quantity} item(s) to cart!`);
+  };
+
+  const handleWishlistRemove = async (boxId: number) => {
+    const success = await removeFromWishlist(boxId);
+    if (success) {
+      showSuccessToast('Item removed from cart');
+    } else {
+      showErrorToast('Failed to remove item');
+    }
+  };
+
+  const handleWishlistUpdateQuantity = async (boxId: number, quantity: number) => {
+    const success = await updateWishlistItem(boxId, undefined, undefined, quantity);
+    if (!success) {
+      showErrorToast('Failed to update quantity');
+    }
+  };
+
+  const handleWishlistClearAll = async () => {
+    const success = await clearWishlist();
+    if (success) {
+      if (isOfflineMode) {
+        showSuccessToast('Cart cleared • Sign in to sync');
+      } else {
+        showSuccessToast('Cart cleared');
+      }
+    } else {
+      showErrorToast('Failed to clear cart');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -170,17 +209,39 @@ export default function RestaurantDetailPage() {
       {/* Header */}
       <div className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={handleGoBack}
-              className="p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100"
-              aria-label="Go back"
-            >
-              <ArrowLeftIcon className="h-6 w-6" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">{restaurant.name}</h1>
-              <p className="text-sm text-gray-600">Restaurant Details</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={handleGoBack}
+                className="p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100"
+                aria-label="Go back"
+              >
+                <ArrowLeftIcon className="h-6 w-6" />
+              </button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{restaurant.name}</h1>
+                <p className="text-sm text-gray-600">Restaurant Details</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              {/* Orders Button */}
+              {user && (
+                <button
+                  onClick={() => window.location.href = '/orders/me'}
+                  className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-orange-600 transition-colors rounded-lg hover:bg-gray-100"
+                  title="My Orders"
+                >
+                  <ReceiptRefundIcon className="h-5 w-5" />
+                  <span className="text-sm font-medium hidden sm:block">Orders</span>
+                </button>
+              )}
+              
+              {/* Cart Toggle */}
+              <WishlistToggle 
+                itemCount={wishlist?.itemCount || 0}
+                onClick={() => setWishlistSidebarOpen(true)}
+              />
             </div>
           </div>
         </div>
@@ -319,6 +380,18 @@ export default function RestaurantDetailPage() {
 
       {/* Bottom Spacer for Mobile */}
       <div className="h-20"></div>
+
+      {/* Cart Sidebar */}
+      <WishlistSidebar
+        isOpen={wishlistSidebarOpen}
+        onClose={() => setWishlistSidebarOpen(false)}
+        items={wishlist?.items || []}
+        onRemoveItem={handleWishlistRemove}
+        onUpdateQuantity={handleWishlistUpdateQuantity}
+        onAddToCart={handleAddToCart}
+        onClearAll={handleWishlistClearAll}
+        loading={false}
+      />
     </div>
   );
 }

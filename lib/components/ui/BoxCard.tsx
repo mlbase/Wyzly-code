@@ -10,6 +10,9 @@ interface Restaurant {
   name: string;
   phoneNumber?: string;
   description?: string;
+  ownerId: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface Box {
@@ -25,7 +28,7 @@ interface Box {
 interface BoxCardProps {
   box: Box;
   onToggleFavorite: (boxId: number) => void;
-  onAddToWishlist: (box: Box) => void;
+  onAddToWishlist: (box: Box) => void | Promise<void>;
   isFavorite: (boxId: number) => boolean;
   isInWishlist: (boxId: number) => boolean;
   showRestaurantInfo?: boolean;

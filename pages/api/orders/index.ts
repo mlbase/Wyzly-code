@@ -1,5 +1,5 @@
 import { NextApiResponse } from 'next';
-import { withAuth, AuthenticatedRequestWithUser } from '../../../lib/middleware';
+import { withCustomerAuth, AuthenticatedRequestWithUser } from '../../../lib/middleware';
 import { orderService } from '../../../lib/services/orderService';
 
 async function handler(req: AuthenticatedRequestWithUser, res: NextApiResponse) {
@@ -17,4 +17,4 @@ async function handler(req: AuthenticatedRequestWithUser, res: NextApiResponse) 
   }
 }
 
-export default withAuth()(handler);
+export default withCustomerAuth()(handler);
