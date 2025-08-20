@@ -131,8 +131,9 @@ export default function RegisterPage() {
       }
 
       if (data.success && data.data) {
-        // Update auth context
-        await login(data.data.user, data.data.token);
+        // Store user data and token
+        localStorage.setItem('wyzly_token', data.data.token);
+        localStorage.setItem('wyzly_user', JSON.stringify(data.data.user));
         
         // Redirect based on role
         if (data.data.user.role === 'restaurant_owner') {
